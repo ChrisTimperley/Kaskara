@@ -1,0 +1,40 @@
+$schema: "http://json-schema.org/draft-06/schema#"
+title: Function Description Database
+
+type: array
+description: |
+  Descriptions for each of the function definitions that were discovered during
+  the analysis.
+items:
+  $ref: '#/definitions/FunctionDescription'
+
+definitions:
+  FunctionDescription:
+    type: object
+    properties:
+      name:
+        type: string
+        description: The name of the function.
+      location:
+        type:
+          $ref: '#/definitions/FileLocationRange'
+        description: |
+          The location range that spans the complete function definition,
+          including both its header and body.
+      body:
+        type:
+          $ref: '#/definitions/FileLocationRange'
+        description: The location range that spans the body of the function.
+      global:
+        type: boolean
+        description: |
+          A flag indicating whether or not this function is considered be part
+          of the global scope.
+      pure:
+        type: boolean
+        description: |
+          A flag indicating whether or not this function is pure (i.e., it has
+          no side effects).
+      return-type:
+        type: '#/definitions/TypeName'
+        description: The return type of this function.
