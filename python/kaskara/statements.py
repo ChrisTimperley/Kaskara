@@ -89,7 +89,7 @@ class StatementDB:
         logger.debug('reading statement analysis results from file: %s',
                      out_fn)
         output = client_bugzoo.files.read(container, out_fn)
-        jsn = json.loads(output)  # type: List[Dict[str, Any]]
+        jsn: List[Dict[str, Any]] = json.loads(output)
         db = StatementDB.from_dict(jsn, snapshot)
         logger.debug("finished reading statement analysis results")
         return db
@@ -116,23 +116,19 @@ class StatementDB:
             if filename not in self.__file_to_statements:
                 self.__file_to_statements[filename] = []
             self.__file_to_statements[filename].append(statement)
-        summary = ["  {}: {} statements".format(fn, len(stmts))
+        summary = [f"  {fn}: {len(stmts)} statements"
                    for (fn, stmts) in self.__file_to_statements.items()]
         logger.debug("indexed statements by file:\n%s", '\n'.join(summary))
 
     def __iter__(self) -> Iterator[Statement]:
         yield from self.__statements
 
-    def in_file(self, fn: str) -> Iterator[Statement]:
-        """
-        Returns an iterator over all of the statements belonging to a file.
-        """
-        yield from self.__file_to_statements.get(fn, [])
+    def in_file(self, filename: str) -> Iterator[Statement]:
+        """Returns an iterator over the statements belonging to a file."""
+        yield from self.__file_to_statements.get(filename, [])
 
     def at_line(self, line: FileLine) -> Iterator[Statement]:
-        """
-        Returns an iterator over all of the statements located at a given line.
-        """
+        """Returns an iterator over the statements at a given line."""
         num = line.num
         for stmt in self.in_file(line.filename):
             if stmt.location.start.line == num:
@@ -140,7 +136,7 @@ class StatementDB:
 
     def insertions(self) -> InsertionPointDB:
         logger.debug("computing insertion points")
-        points = []  # type: List[InsertionPoint]
+        points: List[InsertionPoint] = []
         for stmt in self:
             location = FileLocation(stmt.location.filename,
                                     stmt.location.stop)
@@ -156,9 +152,9 @@ class StatementDB:
     def to_dict(self) -> List[Dict[str, Any]]:
         return [stmt.to_dict() for stmt in self.__statements]
 
-    def to_file(self, fn: str) -> None:
-        logger.debug("writing statement database to file: %s", fn)
+    def to_file(self, filename: str) -> None:
+        logger.debug("writing statement database to file: %s", filename)
         d = self.to_dict()
-        with open(fn, 'w') as f:
+        with open(filename, 'w') as f:
             json.dump(d, f)
-        logger.debug("wrote statement database to file: %s", fn)
+        logger.debug("wrote statement database to file: %s", filename)
