@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+__all__ = ('find_loops',)
+
 from typing import List, Dict
 import json
 import logging
@@ -12,7 +14,7 @@ from .core import FileLocationRange
 from .exceptions import BondException
 from .util import abs_to_rel_flocrange
 
-logger = logging.getLogger(__name__)  # type: logging.Logger
+logger: logging.Logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
@@ -23,7 +25,7 @@ def find_loops(client_bugzoo: BugZooClient,
                *,
                ignore_exit_code: bool = False
                ) -> List[FileLocationRange]:
-    loop_bodies = []  # type: List[FileLocationRange]
+    loop_bodies: List[FileLocationRange] = []
 
     out_fn = "loops.json"
     cmd = "kaskara-loop-finder {}".format(' '.join(files))
@@ -34,16 +36,14 @@ def find_loops(client_bugzoo: BugZooClient,
                  outcome.code, indent(outcome.output, 2))
 
     if not ignore_exit_code and outcome.code != 0:
-        msg = "loop finder exited with non-zero code: {}"
-        msg = msg.format(outcome.code)
+        msg = f"loop finder exited with non-zero code: {outcome.code}"
         raise BondException(msg)
 
     logger.debug("reading loop analysis results from file: %s", out_fn)
     output = client_bugzoo.files.read(container, out_fn)
-    jsn = json.loads(output)  # type: List[Dict[str, str]]
+    jsn: List[Dict[str, str]] = json.loads(output)
     for loop_info in jsn:
         loc = FileLocationRange.from_string(loop_info['body'])
-        loc = abs_to_rel_flocrange(snapshot.source_dir, loc)
         loop_bodies.append(loc)
     logger.debug("finished reading loop analysis results")
 
