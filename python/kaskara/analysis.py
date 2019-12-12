@@ -19,7 +19,7 @@ PLUGIN = Plugin(name='kaskara',
                 environment={'PATH': '/opt/kaskara/scripts:${PATH}'})
 
 
-class Analysis(object):
+class Analysis:
     @staticmethod
     def from_file(fn: str, snapshot: Snapshot) -> 'Analysis':
         with open(fn, 'r') as f:
