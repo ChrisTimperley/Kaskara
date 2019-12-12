@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from typing import FrozenSet, Dict, Any, List, Iterator
+__all__ = ('Statement', 'StatementDB')
+
+from typing import FrozenSet, Dict, Any, List, Iterator, Iterable
 import json
 import attr
 import logging
@@ -32,10 +34,8 @@ class Statement:
     requires_syntax: FrozenSet[str]
 
     @staticmethod
-    def from_dict(d: Dict[str, Any], snapshot: Snapshot) -> 'Statement':
-        # FIXME
+    def from_dict(d: Dict[str, Any]) -> 'Statement':
         location = FileLocationRange.from_string(d['location'])
-        location = abs_to_rel_flocrange(snapshot.source_dir, location)
         return Statement(d['content'],
                          d['canonical'],
                          d['kind'],
@@ -47,12 +47,11 @@ class Statement:
                          frozenset(d.get('live_before', [])),
                          frozenset(d.get('requires_syntax', [])))
 
-    def to_dict(self, snapshot: Snapshot) -> Dict[str, Any]:
-        loc = rel_to_abs_flocrange(snapshot.source_dir, self.location)
+    def to_dict(self) -> Dict[str, Any]:
         return {'content': self.content,
                 'canonical': self.canonical,
                 'kind': self.kind,
-                'location': str(loc),
+                'location': str(self.location),
                 'live_before': [v for v in self.live_before],
                 'reads': [v for v in self.reads],
                 'writes': [v for v in self.writes],
@@ -105,13 +104,10 @@ class StatementDB:
         return db
 
     @staticmethod
-    def from_dict(d: List[Dict[str, Any]],
-                  snapshot: Snapshot
-                  ) -> 'StatementDB':
-        statements = [Statement.from_dict(dd, snapshot) for dd in d]
-        return StatementDB(statements)
+    def from_dict(d: List[Dict[str, Any]]) -> 'StatementDB':
+        return StatementDB(Statement.from_dict(dd) for dd in d)
 
-    def __init__(self, statements: List[Statement]) -> None:
+    def __init__(self, statements: Iterable[Statement]) -> None:
         self.__statements = statements
         logger.debug("indexing statements by file")
         self.__file_to_statements = {}  # type: Dict[str, List[Statement]]
@@ -157,12 +153,12 @@ class StatementDB:
         logger.debug("computed insertion points")
         return db
 
-    def to_dict(self, snapshot: Snapshot) -> List[Dict[str, Any]]:
-        return [stmt.to_dict(snapshot) for stmt in self.__statements]
+    def to_dict(self) -> List[Dict[str, Any]]:
+        return [stmt.to_dict() for stmt in self.__statements]
 
-    def to_file(self, fn: str, snapshot: Snapshot) -> None:
+    def to_file(self, fn: str) -> None:
         logger.debug("writing statement database to file: %s", fn)
-        d = self.to_dict(snapshot)
+        d = self.to_dict()
         with open(fn, 'w') as f:
             json.dump(d, f)
         logger.debug("wrote statement database to file: %s", fn)
