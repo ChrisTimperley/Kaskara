@@ -25,17 +25,13 @@ class InsertionPoint:
     visible: FrozenSet[str]
 
     @staticmethod
-    def from_dict(d: Dict[str, str],
-                  snapshot: Snapshot
-                  ) -> 'InsertionPoint':
+    def from_dict(d: Dict[str, str]) -> 'InsertionPoint':
         location = FileLocation.from_string(d['location'])
-        location = abs_to_rel_floc(snapshot.source_dir, location)
         visible = frozenset(d['visible'])
         return InsertionPoint(location, visible)
 
-    def to_dict(self, snapshot: Snapshot) -> Dict[str, Any]:
-        loc = rel_to_abs_floc(snapshot.source_dir, self.location)
-        return {'location': str(loc),
+    def to_dict(self) -> Dict[str, Any]:
+        return {'location': str(self.location),
                 'visible': [sym for sym in self.visible]}
 
 
@@ -77,27 +73,19 @@ class InsertionPointDB(Iterable[InsertionPoint]):
         return InsertionPointDB.from_dict(jsn, snapshot)
 
     @staticmethod
-    def from_dict(d: List[Dict[str, Any]],
-                  snapshot: Snapshot
-                  ) -> 'InsertionPointDB':
-        contents = [InsertionPoint.from_dict(dd, snapshot) for dd in d]
-        return InsertionPointDB(contents)
+    def from_dict(d: List[Dict[str, Any]]) -> 'InsertionPointDB':
+        return InsertionPointDB(InsertionPoint.from_dict(dd) for dd in d)
 
     def __iter__(self) -> Iterator[InsertionPoint]:
         yield from self.__contents
 
     def in_file(self, fn: str) -> Iterator[InsertionPoint]:
-        """
-        Returns an iterator over all of the insertion points in a given file.
-        """
+        """Returns an iterator over the insertion points in a given file."""
         logger.debug("finding insertion points in file: %s", fn)
         yield from self.__file_insertions.get(fn, [])
 
     def at_line(self, line: FileLine) -> Iterator[InsertionPoint]:
-        """
-        Returns an iterator over all of the insertion points located at a
-        given line.
-        """
+        """Returns an iterator over the insertion points at a given line."""
         logger.debug("finding insertion points at line: %s", str(line))
         filename = line.filename  # type: str
         line_num = line.num  # type: int
@@ -107,5 +95,5 @@ class InsertionPointDB(Iterable[InsertionPoint]):
                              str(line), ins)
                 yield ins
 
-    def to_dict(self, snapshot: Snapshot) -> List[Dict[str, Any]]:
-        return [i.to_dict(snapshot) for i in self]
+    def to_dict(self) -> List[Dict[str, Any]]:
+        return [i.to_dict() for i in self]
